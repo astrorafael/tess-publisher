@@ -1,0 +1,48 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2014 Rafael Gonzalez.
+#
+# See the LICENSE file for details
+# ----------------------------------------------------------------------
+
+#------------------------------------------------------------------------#
+[http]
+
+# HTTP management interface section
+
+# Connection is made by env variables ADMIN_HTTP_LISTEN_ADDR, ADMIN_HTTP_PORT
+
+# http task log level (debug, info, warn, error, critical)
+log_level = "info"
+
+#------------------------------------------------------------------------#
+[mqtt]
+
+# MQTT Client config
+
+# The broker host, username, password and client_id
+# are configured by environment variables
+# MQTT_BROKER, MQTT_USERNAME, MQTT_PASSWORD, MQTT_CLIENT_ID
+# respectively
+
+# Keepalive connection (in seconds)
+# Not reloadable property
+keepalive = 60
+
+
+
+#------------------------------------------------------------------------#
+
+[tess]
+
+# namespace log level (debug, info, warn, error, critical)
+# Reloadable property
+log_level = "info"
+
+# Serial port mapping, needed to send registry message
+# reloadable property
+[tess.ports]
+stars1267 = "/dev/ttyUSB0"
+
+[tess.zp]
+stars1267 = 20.5
+
