@@ -63,7 +63,7 @@ push:
 run mode="dev":
     #!/usr/bin/env bash
     set -exuo pipefail
-    uv run tess-publiher --console --trace --config config.toml
+    uv run tess-publisher --console --trace --config config.toml
 
 
 

@@ -29,6 +29,14 @@ log_level = "info"
 keepalive = 60
 
 
+# namespace log level (debug, info, warn, error, critical)
+# Reloadable property
+log_level = "info"
+
+# MQTT PDUs log level. 
+# See all PDU exchanges with 'debug' level. Otherwise, leave it to 'info'
+# Reloadable property
+protocol_log_level = "info"
 
 #------------------------------------------------------------------------#
 

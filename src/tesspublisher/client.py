@@ -33,7 +33,7 @@ from pubsub import pub
 from . import __version__
 
 # from .. import mqtt, http, dbase, stats, filtering
-from . import http
+from . import http, mqtt
 from .constants import Topic
 from .logger import LogSpace
 
@@ -111,7 +111,7 @@ async def reload_monitor() -> None:
             state.reloaded = False
             log.warning("reloading server configuration")
             options = await reload_file(state.config_path)
-            #mqtt.on_client_reload(options["mqtt"])
+            mqtt.on_client_reload(options["mqtt"])
             http.on_client_reload(options["http"])
         await asyncio.sleep(1)
 
@@ -129,9 +129,7 @@ async def cli_main(args: Namespace) -> None:
     try:
         async with asyncio.TaskGroup() as tg:
             tg.create_task(http.admin(state.options["http"]))
-            #tg.create_task(
-            #    mqtt.subscriber(state.options["mqtt"], state.filter_queue, state.db_queue)
-            #)
+            tg.create_task(mqtt.publisher(state.options["mqtt"], state.queue))
             tg.create_task(reload_monitor())
     except* KeyError as e:
         log.exception("%s -> %s", e, e.__class__.__name__)
