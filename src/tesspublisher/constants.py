@@ -5,13 +5,16 @@
 # see the AUTHORS file for authors
 # ----------------------------------------------------------------------
 
-from enum import StrEnum, IntEnum
+from enum import StrEnum
 
+class Model(StrEnum):
+    # Photometer models
+    TESSW = "TESS-W"
+    TESSP = "TESS-P"
+    TAS = "TAS"
+    TESS4C = "TESS4C"
+    TESSWDL = "TESS-WDL"
 
-class MessagePriority(IntEnum):
-    """Priority of messages coming from the MQTT broker or the HTTP admin interface"""
-    REGISTER = 1
-    MQTT_READINGS = 2
   
 class Topic(StrEnum):
     CLIENT_STATS = "client.stats"

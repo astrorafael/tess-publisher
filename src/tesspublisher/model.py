@@ -6,8 +6,10 @@
 # ----------------------------------------------------------------------
 
 import re
-from typing import Annotated, Union
-from pydantic import AfterValidator, BeforeValidator
+from datetime import datetime, timezone, timedelta
+from typing import Annotated, Union, Optional
+from pydantic import AfterValidator, BeforeValidator, BaseModel
+from .constants import PhotometerModel
 
 
 ZP_LOW = 10
@@ -18,6 +20,32 @@ OFFSET_HIGH = 1
 
 STARS4ALL_NAME_PATTERN = re.compile(r"^stars\d{1,7}$")
 
+# Sequence of possible timestamp formats
+TSTAMP_FORMAT = (
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%SZ",
+    "%Y-%m-%d %H:%M:%SZ",
+    "%Y-%m-%dT%H:%M:%S%z",  # timezone aware that must be converted to UTC
+    "%Y-%m-%d %H:%M:%S%z",  # timezone aware that must be converted to UTC
+)
+
+def is_datetime(value: Union[str, datetime, None]) -> datetime:
+    if value is None:
+        return (datetime.now(timezone.utc) + timedelta(seconds=0.5)).replace(microsecond=0)
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        raise ValueError("tstamp must be a string or datetime.")
+    for i, fmt in enumerate(TSTAMP_FORMAT):
+        try:
+            if i < 4:
+                return datetime.strptime(value, fmt).replace(tzinfo=timezone.utc)
+            else:
+                return datetime.strptime(value, fmt).astimezone(timezone.utc)
+        except ValueError:
+            continue
+    raise ValueError(f"{value} tstamp must be in one of {TSTAMP_FORMAT} formats.")
 
 def is_mac_address(value: str) -> str:
     """'If this doesn't look like a MAC address at all, simple returns it.
@@ -72,5 +100,26 @@ Stars4AllName = Annotated[str, AfterValidator(is_stars4all_name)]
 MacAddress = Annotated[str, AfterValidator(is_mac_address)]
 FreqOffset = Annotated[float, AfterValidator(is_valid_offset)]
 ZeroPointType = Annotated[Union[str, int, float], BeforeValidator(is_zero_point)]
+TimestampType = Annotated[Union[str, datetime, None], BeforeValidator(is_datetime)]
+
+
+class PhotometerInfo(BaseModel):
+    tstamp: TimestampType
+    name: Stars4AllName
+    mac_address: MacAddress
+    model: PhotometerModel
+    firmware: Optional[str] = None
+    zp1: ZeroPointType
+    filter1: str
+    offset1: FreqOffset
+    zp2: Optional[ZeroPointType] = None
+    filter2: Optional[str] = None
+    offset2: Optional[FreqOffset] = None
+    zp3: Optional[ZeroPointType] = None
+    filter3: Optional[str] = None
+    offset3: Optional[FreqOffset] = None
+    zp4: Optional[ZeroPointType] = None
+    filter4: Optional[str] = None
+    offset4: Optional[FreqOffset] = None
 
 __all__ = ["Stars4AllName"]

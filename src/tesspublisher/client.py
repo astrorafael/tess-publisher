@@ -36,6 +36,7 @@ from . import __version__
 from . import http, mqtt
 from .constants import Topic
 from .logger import LogSpace
+from .model import Stars4AllName
 
 
 # The Server state
@@ -126,6 +127,8 @@ async def cli_main(args: Namespace) -> None:
     state.config_path = args.config
     state.options = load_config(state.config_path)
     state.queue = asyncio.Queue(maxsize=state.options["tess"]["qsize"])
+    photometers = [v for k, v in state.options["tess"].items() if k.lower().startswith("stars")]
+    log.info(photometers)
     try:
         async with asyncio.TaskGroup() as tg:
             tg.create_task(http.admin(state.options["http"]))
