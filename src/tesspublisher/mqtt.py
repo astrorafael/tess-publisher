@@ -32,7 +32,7 @@ from pubsub import pub
 # -------------
 
 from . import logger
-from .constants import MessagePriority, Topic
+from .constants import Topic, MessagePriority
 
 
 # ---------
@@ -128,7 +128,7 @@ def on_server_reload(options: dict[str, Any]) -> None:
 # The MQTT task
 # --------------
 
-async def publisher(options: dict[str, Any], queue: asyncio.Queue) -> None:
+async def publisher(options: dict[str, Any], queue: asyncio.PriorityQueue) -> None:
     interval = 5
     state.update(options)
     log.setLevel(state.log_level)
@@ -146,9 +146,11 @@ async def publisher(options: dict[str, Any], queue: asyncio.Queue) -> None:
     while True:
         try:
             async with client:
-                await client.publish("temperature/outside", payload=json.dumps({"temperature": 28.4}))
-            log.info("Hola")
-            await asyncio.sleep(60)
+                priority, item = await queue.get()
+                if priority == MessagePriority.MQTT_REGISTER:
+                    await client.publish("STARS4ALL/register", payload=json.dumps({"temperature": 28.4}))
+                else:
+                    await client.publish("STARS4ALL/register", payload=json.dumps({"temperature": 30}))
         except aiomqtt.MqttError:
             log.warning(f"Connection lost; Reconnecting in {interval} seconds ...")
             await asyncio.sleep(interval)

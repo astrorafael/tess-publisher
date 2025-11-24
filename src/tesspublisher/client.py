@@ -14,12 +14,14 @@ import tomllib
 import signal
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping, Tuple
 from argparse import ArgumentParser, Namespace
 
 # ---------------------------
 # Third-party library imports
 # ----------------------------
+
+import serial
 
 from lica.asyncio.cli import execute
 from lica.validators import vfile
@@ -33,10 +35,10 @@ from pubsub import pub
 from . import __version__
 
 # from .. import mqtt, http, dbase, stats, filtering
-from . import http, mqtt
+from . import http, mqtt, serial
 from .constants import Topic
 from .logger import LogSpace
-from .model import Stars4AllName
+from .model import PhotometerInfo
 
 
 # The Server state
@@ -44,7 +46,7 @@ from .model import Stars4AllName
 class State:
     config_path: str = None
     options: dict[str, Any] = None
-    queue: asyncio.Queue = None
+    queue: asyncio.PriorityQueue = None
     reloaded: bool = False
 
 
@@ -116,6 +118,34 @@ async def reload_monitor() -> None:
             http.on_client_reload(options["http"])
         await asyncio.sleep(1)
 
+def get_photometers_info(config_options: Mapping) -> list[Tuple[str, PhotometerInfo]]:
+    return [
+        (
+            v["port"],
+            PhotometerInfo(
+                name=k,
+                mac_address=v["mac_address"],
+                model=v["model"],
+                firmware=v.get("firmware"),
+                zp1=v["zp1"],
+                filter1=v["filter1"],
+                offset1=v["offset1"],
+                zp2=v.get("zp2"),
+                filter2=v.get("filter2"),
+                offset2=v.get("offset2"),
+                zp3=v.get("zp3"),
+                filter3=v.get("filter3"),
+                offset3=v.get("offset3"),
+                zp4=v.get("zp4"),
+                filter4=v.get("filter4"),
+                offset4=v.get("offset4"),
+            ),
+        )
+        for k, v in state.options["tess"].items()
+        if k.lower().startswith("stars")
+    ]
+
+
 
 # ================
 # MAIN ENTRY POINT
@@ -126,14 +156,16 @@ async def cli_main(args: Namespace) -> None:
     global state
     state.config_path = args.config
     state.options = load_config(state.config_path)
-    state.queue = asyncio.Queue(maxsize=state.options["tess"]["qsize"])
-    photometers = [v for k, v in state.options["tess"].items() if k.lower().startswith("stars")]
-    log.info(photometers)
+    state.queue = asyncio.PriorityQueue(maxsize=state.options["tess"]["qsize"])
+    photometers = get_photometers_info(state.options["tess"].items())
     try:
         async with asyncio.TaskGroup() as tg:
             tg.create_task(http.admin(state.options["http"]))
             tg.create_task(mqtt.publisher(state.options["mqtt"], state.queue))
             tg.create_task(reload_monitor())
+            for port, phot in photometers:
+                tg.create_task(serial.reader(port, phot, state.queue))
+
     except* KeyError as e:
         log.exception("%s -> %s", e, e.__class__.__name__)
     except* asyncio.CancelledError:

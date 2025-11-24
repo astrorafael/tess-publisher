@@ -49,6 +49,17 @@ log_level = "info"
 # Serial to MQTT queue size
 qsize = 1000
 
+# Photometers config data
+# Non reloadable data
+[tess.stars477]
+port = "/dev/ttyUSB0"
+mac_address = "AA:BB:CC:DD:EE:FF"
+zp1 = 20.5
+offset1 = 0 # Frequency offset (dark current frequency)
+filter1 = "UV/IR-740"
+firmware = "Sep 24 2019 v 3.1"
+
+
 [tess.stars478]
 port = "/dev/ttyUSB1"
 mac_address = "FF:AA:BB:CC:DD:EE"
@@ -64,3 +75,4 @@ filter3 = "B"
 zp4 = 20.5
 offset4 = 0 # Frequency offset (dark current frequency)
 filter4 = "UV/IR-740"
+firmware = "Sep 24 2019 v 3.1"

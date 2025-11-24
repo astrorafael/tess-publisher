@@ -6,10 +6,11 @@
 # ----------------------------------------------------------------------
 
 import re
+import json
 from datetime import datetime, timezone, timedelta
 from typing import Annotated, Union, Optional
 from pydantic import AfterValidator, BeforeValidator, BaseModel
-from .constants import PhotometerModel
+from .constants import Model as PhotometerModel
 
 
 ZP_LOW = 10
@@ -104,7 +105,6 @@ TimestampType = Annotated[Union[str, datetime, None], BeforeValidator(is_datetim
 
 
 class PhotometerInfo(BaseModel):
-    tstamp: TimestampType
     name: Stars4AllName
     mac_address: MacAddress
     model: PhotometerModel
@@ -122,4 +122,13 @@ class PhotometerInfo(BaseModel):
     filter4: Optional[str] = None
     offset4: Optional[FreqOffset] = None
 
-__all__ = ["Stars4AllName"]
+    def to_mqtt(self) -> str:
+        if self.model == PhotometerModel.TESS4C:
+            return json.dumps({"name": self.name, "mac": self.mac_address, "calib": self.zp1})
+        elif self.model in (PhotometerModel.TESSW, PhotometerModel.TESSWDL):
+            return json.dumps({"name": self.name, "mac": self.mac_address, "calib": self.zp1})
+        else:
+            raise ValueError(f"This photometer does not transmit: {PhotometerModel.TESSW.value}")
+
+
+__all__ = ["PhotometerInfo"]

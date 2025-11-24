@@ -5,7 +5,13 @@
 # see the AUTHORS file for authors
 # ----------------------------------------------------------------------
 
-from enum import StrEnum
+from enum import StrEnum, IntEnum
+
+
+class MessagePriority(IntEnum):
+    """Priority of messages to deliver to MQTT task"""
+    MQTT_REGISTER = 1
+    MQTT_READINGS = 2
 
 class Model(StrEnum):
     # Photometer models
