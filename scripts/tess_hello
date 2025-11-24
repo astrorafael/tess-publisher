@@ -1,0 +1,5 @@
+#!/usr/bin/env bash   
+set -euo pipefail
+port="${ADM_HTTP_PORT:-8080}"
+response=$(/usr/bin/curl -s -X GET http://localhost:${port}/v1)
+echo $response

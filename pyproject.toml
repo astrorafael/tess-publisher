@@ -1,0 +1,83 @@
+[project]
+name = "tess-publisher"
+dynamic = ["version"]
+description = "A package to publish USB-enabled TESS measurements to an MQTT broker"
+requires-python = ">=3.12"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Rafael González", email = "rafael08@ucm.es"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: No Input/Output (Daemon)",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
+dependencies = [
+  # generic utilities
+  "pypubsub>=4.0",
+  "lica>=2.0",
+  # Serial ports
+  "aioserial >= 1.3",
+  # MQTT
+  "aiomqtt",
+  # Management HTTP interface
+  "pydantic",
+  "fastapi[standard]",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "mypy>=1.15.0",
+]
+
+
+[project.urls]
+Homepage = "https://foundation.stars4all.eu"
+Repository = "https://github.com/astrorafael/tess-publisher.git"
+
+[project.scripts]
+# This is the server
+tess-publisher = "tesspublisher.client:main"
+
+
+[build-system]
+requires = ["setuptools >= 78.1", "wheel", "setuptools_scm[toml]>=8.2"]
+build-backend = "setuptools.build_meta"
+
+# pyproject.toml
+# Automatically generates a _version-py file from with Git information
+# This file shold be placed in .gitignore
+[tool.setuptools_scm]
+write_to = "src/tesspublisher/_version.py"
+
+[tool.setuptools.packages.find]
+# scanning for namespace packages is true by default in pyproject.toml, so
+# you do NOT need to include the following line.
+namespaces = true
+where = ["src"]
+
+# This option is available in the SetupTools build&package back-end
+[tool.setuptools]
+script-files = [
+    "scripts/tess_hello",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] [%(name)s] %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"

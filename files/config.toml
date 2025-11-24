@@ -38,11 +38,13 @@ keepalive = 60
 # Reloadable property
 log_level = "info"
 
-# Serial port mapping, needed to send registry message
-# reloadable property
-[tess.ports]
-stars1267 = "/dev/ttyUSB0"
+# Serial to MQTT queue size
+qsize = 1000
 
-[tess.zp]
-stars1267 = 20.5
-
+# Photometers config data
+# Non reloadable data
+[tess.stars477]
+port = "/dev/ttyUSB0"
+mac_address = "AA:BB:CC:DD:EE:FF"
+zp = 20.5
+offset = 0 # Frequency offset (dark current frequency)
