@@ -53,26 +53,29 @@ qsize = 1000
 # Non reloadable data
 [tess.stars477]
 port = "/dev/ttyUSB0"
+model = "TESS-W"
 mac_address = "AA:BB:CC:DD:EE:FF"
 zp1 = 20.5
 offset1 = 0 # Frequency offset (dark current frequency)
 filter1 = "UV/IR-740"
-firmware = "Sep 24 2019 v 3.1"
+log_level = "debug"
 
 
 [tess.stars478]
 port = "/dev/ttyUSB1"
+model = "TESS4C"
 mac_address = "FF:AA:BB:CC:DD:EE"
+firmware = "Mar  4 2024"
 zp1 = 20.5
 offset1 = 0 # Frequency offset (dark current frequency)
-filter1 = "R"
+filter1 = "UVIR750"
 zp2 = 20.5
 offset2 = 0 # Frequency offset (dark current frequency)
-filter2 = "G"
+filter2 = "UVIR650"
 zp3 = 20.5
 offset3 = 0 # Frequency offset (dark current frequency)
-filter3 = "B"
+filter3 = "RGB-R"
 zp4 = 20.5
 offset4 = 0 # Frequency offset (dark current frequency)
-filter4 = "UV/IR-740"
-firmware = "Sep 24 2019 v 3.1"
+filter4 = "RGB-B"
+log_level = "debug"

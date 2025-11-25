@@ -1,0 +1,9 @@
+/home/pi/tess-publisher/log/tess-publisher.log {
+	su rfg rfg
+	daily
+	dateext
+	rotate 30
+	missingok
+	notifempty
+	copytruncate
+}

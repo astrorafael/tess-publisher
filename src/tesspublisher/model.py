@@ -31,6 +31,7 @@ TSTAMP_FORMAT = (
     "%Y-%m-%d %H:%M:%S%z",  # timezone aware that must be converted to UTC
 )
 
+
 def is_datetime(value: Union[str, datetime, None]) -> datetime:
     if value is None:
         return (datetime.now(timezone.utc) + timedelta(seconds=0.5)).replace(microsecond=0)
@@ -47,6 +48,7 @@ def is_datetime(value: Union[str, datetime, None]) -> datetime:
         except ValueError:
             continue
     raise ValueError(f"{value} tstamp must be in one of {TSTAMP_FORMAT} formats.")
+
 
 def is_mac_address(value: str) -> str:
     """'If this doesn't look like a MAC address at all, simple returns it.
@@ -124,9 +126,30 @@ class PhotometerInfo(BaseModel):
 
     def to_mqtt(self) -> str:
         if self.model == PhotometerModel.TESS4C:
-            return json.dumps({"name": self.name, "mac": self.mac_address, "calib": self.zp1})
+            return json.dumps(
+                {
+                    "rev": 3,
+                    "name": self.name,
+                    "mac": self.mac_address,
+                    "firmware": self.firmware,
+                    "F1": {"band": self.filter1, "calib": self.zp1},
+                    "F2": {"band": self.filter2, "calib": self.zp2},
+                    "F3": {"band": self.filter3, "calib": self.zp3},
+                    "F4": {"band": self.filter4, "calib": self.zp4},
+                }
+                
+            )
         elif self.model in (PhotometerModel.TESSW, PhotometerModel.TESSWDL):
-            return json.dumps({"name": self.name, "mac": self.mac_address, "calib": self.zp1})
+            return json.dumps(
+                {
+                    "name": self.name,
+                    "rev": 2,
+                    "mac": self.mac_address,
+                    "chan": "pruebas",
+                    "calib": self.zp1,
+                    "wdBm": 0,
+                }
+            )
         else:
             raise ValueError(f"This photometer does not transmit: {PhotometerModel.TESSW.value}")
 

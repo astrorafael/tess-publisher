@@ -1,0 +1,15 @@
+[Unit]
+Description=TESS Quality Sky Meter MQTT publisher service
+Documentation=https://github.com/STARS4ALL/tess-publisher
+
+[Service]
+Type=simple
+User=root
+KillMode=process
+ExecStart=/home/pi/tess-publisher/.venv/bin/tess-publisher --config /home/pi/tess-publisher/config.toml --log-file /home/pi/tess-publisher/log/tess-publisher.log
+ExecReload=/home/tess-publisher/.venv/bin/tessdb_reload
+EnvironmentFile=/home/pi/tess-publisher/.env
+WorkingDirectory=/home/pi/tess-publisher/
+
+[Install]
+WantedBy=multi-user.target
