@@ -35,10 +35,11 @@ from pubsub import pub
 from . import __version__
 
 # from .. import mqtt, http, dbase, stats, filtering
-from . import http, mqtt, serial
+from . import http, mqtt
 from .constants import Topic
 from .logger import LogSpace
 from .model import PhotometerInfo
+from .photometer import Photometer
 
 
 # The Server state
@@ -118,33 +119,35 @@ async def reload_monitor() -> None:
             http.on_client_reload(options["http"])
         await asyncio.sleep(1)
 
+
 def get_photometers_info(config_options: Mapping) -> list[Tuple[str, PhotometerInfo]]:
     return [
         (
-            v["port"],
+            info["port"],
+            info["period"],
+            # PhotometerInfo validates input data from config.toml
             PhotometerInfo(
-                name=k,
-                mac_address=v["mac_address"],
-                model=v["model"],
-                firmware=v.get("firmware"),
-                zp1=v["zp1"],
-                filter1=v["filter1"],
-                offset1=v["offset1"],
-                zp2=v.get("zp2"),
-                filter2=v.get("filter2"),
-                offset2=v.get("offset2"),
-                zp3=v.get("zp3"),
-                filter3=v.get("filter3"),
-                offset3=v.get("offset3"),
-                zp4=v.get("zp4"),
-                filter4=v.get("filter4"),
-                offset4=v.get("offset4"),
+                name=name,
+                mac_address=info["mac_address"],
+                model=info["model"],
+                firmware=info.get("firmware"),
+                zp1=info["zp1"],
+                filter1=info["filter1"],
+                offset1=info["offset1"],
+                zp2=info.get("zp2"),
+                filter2=info.get("filter2"),
+                offset2=info.get("offset2"),
+                zp3=info.get("zp3"),
+                filter3=info.get("filter3"),
+                offset3=info.get("offset3"),
+                zp4=info.get("zp4"),
+                filter4=info.get("filter4"),
+                offset4=info.get("offset4"),
             ),
         )
-        for k, v in state.options["tess"].items()
-        if k.lower().startswith("stars")
+        for name, info in state.options["tess"].items()
+        if name.lower().startswith("stars")
     ]
-
 
 
 # ================
@@ -160,12 +163,18 @@ async def cli_main(args: Namespace) -> None:
     photometers = get_photometers_info(state.options["tess"].items())
     try:
         async with asyncio.TaskGroup() as tg:
+            tg.create_task(reload_monitor())
             tg.create_task(http.admin(state.options["http"]))
             tg.create_task(mqtt.publisher(state.options["mqtt"], state.queue))
-            tg.create_task(reload_monitor())
-            for port, phot in photometers:
-                tg.create_task(serial.reader(port, phot, state.queue))
-
+            for port, period, info in photometers:
+                phot = Photometer(port=port, period=period, info=info, mqtt_queue=state.queue)
+                try:
+                    phot.open()
+                except Exception:
+                    continue
+                else:
+                    tg.create_task(phot.reader())
+                    tg.create_task(phot.sampler())
     except* KeyError as e:
         log.exception("%s -> %s", e, e.__class__.__name__)
     except* asyncio.CancelledError:

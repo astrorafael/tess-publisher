@@ -40,7 +40,6 @@ from .constants import Topic, MessagePriority
 # ---------
 
 
-
 # ------------------
 # Additional Classes
 # ------------------
@@ -80,16 +79,16 @@ class State:
     topics: list[str] = field(default_factory=list)
     log_level: int = 0
     protocol_log_level: int = 0
-   
+
     def update(self, options: dict[str, Any]) -> None:
         """Updates the mutable state"""
-       
+
         self.keepalive = options["keepalive"]
         self.log_level = logger.level(options["log_level"])
         log.setLevel(self.log_level)
         self.protocol_log_level = logger.level(options["protocol_log_level"])
         proto_log.setLevel(self.protocol_log_level)
-       
+
 
 # ----------------
 # Global variables
@@ -123,10 +122,10 @@ def on_server_reload(options: dict[str, Any]) -> None:
 # pub.subscribe(on_server_reload, Topic.CLIENT_RELOAD)
 
 
-
 # --------------
 # The MQTT task
 # --------------
+
 
 async def publisher(options: dict[str, Any], queue: asyncio.PriorityQueue) -> None:
     interval = 5
@@ -148,9 +147,10 @@ async def publisher(options: dict[str, Any], queue: asyncio.PriorityQueue) -> No
             async with client:
                 priority, item = await queue.get()
                 if priority == MessagePriority.MQTT_REGISTER:
-                    await client.publish("STARS4ALL/register", payload=json.dumps({"temperature": 28.4}))
+                    await client.publish("STARS4ALL/register", payload=json.dumps(item))
                 else:
-                    await client.publish("STARS4ALL/register", payload=json.dumps({"temperature": 30}))
+                    name = item["name"]
+                    await client.publish(f"STARS4ALL/{name}/reading", payload=json.dumps(item))
         except aiomqtt.MqttError:
             log.warning(f"Connection lost; Reconnecting in {interval} seconds ...")
             await asyncio.sleep(interval)

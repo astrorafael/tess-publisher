@@ -124,32 +124,27 @@ class PhotometerInfo(BaseModel):
     filter4: Optional[str] = None
     offset4: Optional[FreqOffset] = None
 
-    def to_mqtt(self) -> str:
+    def to_dict(self) -> str:
         if self.model == PhotometerModel.TESS4C:
-            return json.dumps(
-                {
-                    "rev": 3,
-                    "name": self.name,
-                    "mac": self.mac_address,
-                    "firmware": self.firmware,
-                    "F1": {"band": self.filter1, "calib": self.zp1},
-                    "F2": {"band": self.filter2, "calib": self.zp2},
-                    "F3": {"band": self.filter3, "calib": self.zp3},
-                    "F4": {"band": self.filter4, "calib": self.zp4},
-                }
-                
-            )
+            return {
+                "rev": 3,
+                "name": self.name,
+                "mac": self.mac_address,
+                "firmware": self.firmware,
+                "F1": {"band": self.filter1, "calib": self.zp1},
+                "F2": {"band": self.filter2, "calib": self.zp2},
+                "F3": {"band": self.filter3, "calib": self.zp3},
+                "F4": {"band": self.filter4, "calib": self.zp4},
+            }
         elif self.model in (PhotometerModel.TESSW, PhotometerModel.TESSWDL):
-            return json.dumps(
-                {
-                    "name": self.name,
-                    "rev": 2,
-                    "mac": self.mac_address,
-                    "chan": "pruebas",
-                    "calib": self.zp1,
-                    "wdBm": 0,
-                }
-            )
+            return {
+                "name": self.name,
+                "rev": 2,
+                "mac": self.mac_address,
+                "chan": "pruebas",
+                "calib": self.zp1,
+                "wdBm": 0,
+            }
         else:
             raise ValueError(f"This photometer does not transmit: {PhotometerModel.TESSW.value}")
 
