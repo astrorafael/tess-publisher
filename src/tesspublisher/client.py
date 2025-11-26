@@ -125,6 +125,7 @@ def get_photometers_info(config_options: Mapping) -> list[Tuple[str, PhotometerI
         (
             info["port"],
             info["period"],
+            info["log_level"],
             # PhotometerInfo validates input data from config.toml
             PhotometerInfo(
                 name=name,
@@ -166,8 +167,10 @@ async def cli_main(args: Namespace) -> None:
             tg.create_task(reload_monitor())
             tg.create_task(http.admin(state.options["http"]))
             tg.create_task(mqtt.publisher(state.options["mqtt"], state.queue))
-            for port, period, info in photometers:
-                phot = Photometer(port=port, period=period, info=info, mqtt_queue=state.queue)
+            for port, period, log_level, info in photometers:
+                phot = Photometer(
+                    port=port, period=period, info=info, mqtt_queue=state.queue, log_level=log_level
+                )
                 try:
                     phot.open()
                 except Exception:

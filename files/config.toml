@@ -51,18 +51,21 @@ qsize = 1000
 
 # Photometers config data
 # Non reloadable data
-[tess.stars477]
-port = "/dev/ttyUSB0"
+[tess.stars111]
+port = "/dev/ttyACM0"
+period = 60 # MQTT TX period in seconds. Recommended value: 60
+log_level = "info"
 model = "TESS-W"
 mac_address = "AA:BB:CC:DD:EE:FF"
 zp1 = 20.5
 offset1 = 0 # Frequency offset (dark current frequency)
 filter1 = "UV/IR-740"
-log_level = "debug"
 
 
 [tess.stars478]
-port = "/dev/ttyUSB1"
+port = "/dev/ttyACM1"
+period = 60 # MQTT TX period in seconds. Recommended value: 60
+log_level = "debug"
 model = "TESS4C"
 mac_address = "FF:AA:BB:CC:DD:EE"
 firmware = "Mar  4 2024"
@@ -78,4 +81,3 @@ filter3 = "RGB-R"
 zp4 = 20.5
 offset4 = 0 # Frequency offset (dark current frequency)
 filter4 = "RGB-B"
-log_level = "debug"
