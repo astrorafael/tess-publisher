@@ -1,20 +1,9 @@
 import asyncio
-import logging
 from logging import Logger
-from datetime import datetime, timezone
-from typing import Any, Tuple, Union
+from typing import Union
 
 import aioserial
 import serial
-
-
-def chop(endpoint: str, sep=":"):
-    """Chop a list of strings, separated by sep and
-    strips individual string items from leading and trailing blanks"""
-    chopped = tuple(elem.strip() for elem in endpoint.split(sep))
-    if len(chopped) == 1 and chopped[0] == "":
-        chopped = tuple()
-    return chopped
 
 
 class SerialTransport:
@@ -34,11 +23,15 @@ class SerialTransport:
         else:
             self.log.info("using port %s", self.port)
 
-    async def read(self) -> Tuple[str, datetime]:
-        data = (await self.serial.readline_async()).decode("utf-8")
-        now = datetime.now(timezone.utc)
-        self.log.info(data)
-        return data, now
+    async def close(self) -> None:
+        self.serial.close()
+
+    def __aiter__(self):
+        # The iterator is its own async iterator.
+        return self
+
+    async def __anext__(self) -> str:
+        return (await self.serial.readline_async()).decode("utf-8")
 
 
 class TCPTransport(asyncio.Protocol):
@@ -49,7 +42,7 @@ class TCPTransport(asyncio.Protocol):
         port: int = 23,
         loop: asyncio.AbstractEventLoop | None = None,
         encoding: str = "utf-8",
-        newline: bytes = b"\n",
+        newline: bytes = b"\r\n",
     ) -> None:
         self.loop = loop or asyncio.get_event_loop()
         self.log = logger
@@ -70,12 +63,18 @@ class TCPTransport(asyncio.Protocol):
             lambda: self, self.host, self.port
         )
 
-    def next_message(self) -> asyncio.Future:
-        """Return a future that will be completed with (line_str, timestamp)."""
+    async def close(self) -> None:
+        self.transport.close()
+
+    def __aiter__(self):
+        # The iterator is its own async iterator.
+        return self
+
+    async def __anext__(self) -> str:
         if self.on_data_received is not None and not self.on_data_received.done():
             self.on_data_received.cancel()
         self.on_data_received = self.loop.create_future()
-        return self.on_data_received
+        return await self.on_data_received
 
     # asyncio.Protocol callbacks
     def connection_made(self, transport: asyncio.Transport) -> None:
@@ -84,26 +83,21 @@ class TCPTransport(asyncio.Protocol):
     def data_received(self, data: bytes) -> None:
         # Accumulate incoming bytes
         self._buffer.extend(data)
-
         # Process all complete lines currently in buffer
         while True:
             idx = self._buffer.find(self.newline)
             if idx == -1:
                 break  # no full line yet
-
             # Extract one line including newline
             line = self._buffer[: idx + len(self.newline)]
-            del self._buffer[: idx + len(self.newline)]
-
-            now = datetime.now(timezone.utc)
+            self._buffer = bytearray()
             message = line.decode(self.encoding, errors="replace")
-
             if (
                 self.on_data_received is not None
                 and not self.on_data_received.cancelled()
                 and not self.on_data_received.done()
             ):
-                self.on_data_received.set_result((message, now))
+                self.on_data_received.set_result(message)
                 # Only fulfill one waiter; caller can call next_message() again.
                 break
 
@@ -119,6 +113,15 @@ class TCPTransport(asyncio.Protocol):
             self.on_data_received.set_exception(
                 ConnectionError("Connection lost before line was complete")
             )
+
+
+def chop(endpoint: str, sep=":"):
+    """Chop a list of strings, separated by sep and
+    strips individual string items from leading and trailing blanks"""
+    chopped = tuple(elem.strip() for elem in endpoint.split(sep))
+    if len(chopped) == 1 and chopped[0] == "":
+        chopped = tuple()
+    return chopped
 
 
 async def factory(endpoint: str, logger: Logger) -> Union[TCPTransport, SerialTransport]:

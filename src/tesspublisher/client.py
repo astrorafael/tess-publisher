@@ -125,7 +125,7 @@ async def reload_monitor() -> None:
 def get_photometers_info(config_options: Mapping) -> list[Tuple[str, PhotometerInfo]]:
     return [
         (
-            info["device"],
+            info["endpoint"],
             info["period"],
             info["log_level"],
             # PhotometerInfo validates input data from config.toml

@@ -11,7 +11,7 @@ import asyncio
 import collections
 from asyncio import PriorityQueue
 from datetime import datetime, timezone, timedelta
-from typing import AsyncIterator, Optional, Any
+from typing import AsyncIterator, Optional, Any, Union
 
 import aioserial
 import serial
@@ -19,7 +19,7 @@ import serial
 from . import logger
 from .constants import MessagePriority, Model as PhotometerModel
 from .model import PhotometerInfo
-
+from .transport import SerialTransport, TCPTransport
 
 # ----------------
 # Global variables
@@ -110,7 +110,7 @@ class Photometer:
 class PhotometerReadings:
     def __init__(
         self,
-        transport: Any,
+        transport: Union[SerialTransport, TCPTransport],
     ):
         self.transport = transport
 
@@ -119,16 +119,14 @@ class PhotometerReadings:
         Método para inicializar el iterador asíncrono.
         Retorna un AsyncIterator de enteros (puedes cambiar el tipo).
         """
-        return self
+        return aiter(self.transport)
 
     async def __anext__(self) -> int:
         """
         Método para obtener el siguiente ítem asincrónico.
         Retorna un entero o lanza StopAsyncIteration para finalizar la iteración.
         """
-        # Lógica para obtener el siguiente elemento
-        # Ejemplo simplificado, levantar StopAsyncIteration para terminar
-        raise StopAsyncIteration
+        return await anext(self.transport)
 
 
 class Photometer:
@@ -173,7 +171,9 @@ class Photometer:
         Retorna opcionalmente un booleano para suprimir excepciones.
         """
         # Lógica para salir del contexto asíncrono
-        return None
+        if exc_type is not None:
+            await self.transport.close()
+        return False
 
     async def reader(self) -> None:
         """Photometer reader task"""
@@ -181,8 +181,16 @@ class Photometer:
         async with self:
             async for message in self.readings:
                 if message:
-                    self.log.info(message)
-                    self.queue.append(message)
+                    try:
+                        message = json.loads(message)
+                    except json.decoder.JSONDecodeError:
+                        pass
+                    else:
+                        if isinstance(message, dict):
+                            tstamp = datetime.now(timezone.utc) + timedelta(seconds=0.5)
+                            message["tstamp"] = tstamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+                            self.log.info(message)
+                            self.queue.append(message)  # Internal deque
 
     async def sampler(self) -> None:
         """Photometer sampler task"""
