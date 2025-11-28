@@ -16,12 +16,12 @@ import signal
 from dataclasses import dataclass
 from typing import Any, Mapping, Tuple
 from argparse import ArgumentParser, Namespace
+from asyncio import PriorityQueue
 
 # ---------------------------
 # Third-party library imports
 # ----------------------------
 
-import serial
 
 from lica.asyncio.cli import execute
 from lica.validators import vfile
@@ -40,6 +40,8 @@ from .constants import Topic
 from .logger import LogSpace
 from .model import PhotometerInfo
 from .photometer import Photometer
+from .constants import MessagePriority
+from . import transport, logger
 
 
 # The Server state
@@ -123,7 +125,7 @@ async def reload_monitor() -> None:
 def get_photometers_info(config_options: Mapping) -> list[Tuple[str, PhotometerInfo]]:
     return [
         (
-            info["port"],
+            info["device"],
             info["period"],
             info["log_level"],
             # PhotometerInfo validates input data from config.toml
@@ -167,17 +169,16 @@ async def cli_main(args: Namespace) -> None:
             tg.create_task(reload_monitor())
             tg.create_task(http.admin(state.options["http"]))
             tg.create_task(mqtt.publisher(state.options["mqtt"], state.queue))
-            for port, period, log_level, info in photometers:
+            for endpoint, period, log_level, info in photometers:
+                log = logging.getLogger(info.name)
+                log_level = logger.level(log_level)
+                log.setLevel(log_level)
+                tp = await transport.factory(endpoint=endpoint, logger=log)
                 phot = Photometer(
-                    port=port, period=period, info=info, mqtt_queue=state.queue, log_level=log_level
+                    transport=tp, period=period, info=info, mqtt_queue=state.queue, logger=log
                 )
-                try:
-                    phot.open()
-                except Exception:
-                    continue
-                else:
-                    tg.create_task(phot.reader())
-                    tg.create_task(phot.sampler())
+                tg.create_task(phot.reader())
+                tg.create_task(phot.sampler())
     except* KeyError as e:
         log.exception("%s -> %s", e, e.__class__.__name__)
     except* asyncio.CancelledError:
