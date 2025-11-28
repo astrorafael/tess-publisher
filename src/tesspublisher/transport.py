@@ -7,12 +7,13 @@ import serial
 
 
 class SerialTransport:
-    def __init__(self, logger: Logger, port="/dev/ttyUSB0", baudrate=9600):
+    def __init__(self, logger: Logger, port: str, baudrate: int):
         self.log = logger
         self.port = port
         self.baudrate = baudrate
         self.serial = None
-        self.log.info("Using %s Transport", self.__class__.__name__)
+        self.encoding: str = "utf-8"
+        self.log.info("Using %s", self.__class__.__name__)
 
     async def open(self) -> None:
         try:
@@ -21,20 +22,20 @@ class SerialTransport:
             self.log.error(e)
             raise
         else:
-            self.log.info("using port %s", self.port)
+            self.log.info("Opening port %s", self.port)
 
     async def close(self) -> None:
         self.serial.close()
 
-    def __aiter__(self):
+    def __aiter__(self) -> "SerialTransport":
         # The iterator is its own async iterator.
         return self
 
     async def __anext__(self) -> str:
-        return (await self.serial.readline_async()).decode("utf-8")
+        return (await self.serial.readline_async()).decode(self.encoding, errors="replace")
 
 
-class TCPTransport(asyncio.Protocol):
+class TCPProtocol(asyncio.Protocol):
     def __init__(
         self,
         logger: Logger,
@@ -56,9 +57,10 @@ class TCPTransport(asyncio.Protocol):
         # Internal state
         self.transport: asyncio.Transport | None = None
         self._buffer = bytearray()
-        self.log.info("Using %s Transport", self.__class__.__name__)
+        self.log.info("Using %s", self.__class__.__name__)
 
     async def open(self) -> None:
+        self.log.info("Opening TCP connection to (%s, %s)", self.host, self.port)
         transport, self.protocol = await self.loop.create_connection(
             lambda: self, self.host, self.port
         )
@@ -66,7 +68,7 @@ class TCPTransport(asyncio.Protocol):
     async def close(self) -> None:
         self.transport.close()
 
-    def __aiter__(self):
+    def __aiter__(self) -> "TCPProtocol":
         # The iterator is its own async iterator.
         return self
 
@@ -78,6 +80,7 @@ class TCPTransport(asyncio.Protocol):
 
     # asyncio.Protocol callbacks
     def connection_made(self, transport: asyncio.Transport) -> None:
+        self.log.info("Opened TCP connection to (%s, %s)", self.host, self.port)
         self.transport = transport
 
     def data_received(self, data: bytes) -> None:
@@ -90,7 +93,7 @@ class TCPTransport(asyncio.Protocol):
                 break  # no full line yet
             # Extract one line including newline
             line = self._buffer[: idx + len(self.newline)]
-            self._buffer = bytearray()
+            self._buffer = bytearray()  # Empties buffer
             message = line.decode(self.encoding, errors="replace")
             if (
                 self.on_data_received is not None
@@ -111,7 +114,7 @@ class TCPTransport(asyncio.Protocol):
             and not self.on_data_received.cancelled()
         ):
             self.on_data_received.set_exception(
-                ConnectionError("Connection lost before line was complete")
+                ConnectionError("Connection lost before incoming message was complete")
             )
 
 
@@ -124,14 +127,12 @@ def chop(endpoint: str, sep=":"):
     return chopped
 
 
-async def factory(endpoint: str, logger: Logger) -> Union[TCPTransport, SerialTransport]:
+async def factory(endpoint: str, logger: Logger) -> Union[TCPProtocol, SerialTransport]:
     proto, A, B = chop(endpoint)
     if proto == "serial":
-        transport = SerialTransport(logger=logger, port=A, baudrate=B)
-
+        comm = SerialTransport(logger=logger, port=A, baudrate=B)
     elif proto == "tcp":
-        transport = TCPTransport(logger=logger, host=A, port=B)
-
+        comm = TCPProtocol(logger=logger, host=A, port=B)
     else:
         raise NotImplementedError(f"Unsupported protocol: {proto}")
-    return transport
+    return comm

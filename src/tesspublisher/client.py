@@ -16,7 +16,6 @@ import signal
 from dataclasses import dataclass
 from typing import Any, Mapping, Tuple
 from argparse import ArgumentParser, Namespace
-from asyncio import PriorityQueue
 
 # ---------------------------
 # Third-party library imports
@@ -40,7 +39,6 @@ from .constants import Topic
 from .logger import LogSpace
 from .model import PhotometerInfo
 from .photometer import Photometer
-from .constants import MessagePriority
 from . import transport, logger
 
 
@@ -65,15 +63,15 @@ state = State()
 # ------------------------------------
 
 
-def signal_pause(signum: int, frame):
+def signal_pause():
     pub.sendMessage(Topic.CLIENT_PAUSE)
 
 
-def signal_resume(signum: int, frame):
+def signal_resume():
     pub.sendMessage(Topic.CLIENT_RESUME)
 
 
-def signal_reload(signum: int, frame):
+def signal_reload():
     pub.sendMessage(Topic.CLIENT_RELOAD)
 
 
@@ -160,6 +158,10 @@ def get_photometers_info(config_options: Mapping) -> list[Tuple[str, PhotometerI
 
 async def cli_main(args: Namespace) -> None:
     global state
+    loop = asyncio.get_running_loop()
+    loop.add_signal_handler(signal.SIGHUP, signal_reload)
+    loop.add_signal_handler(signal.SIGUSR1, signal_pause)
+    loop.add_signal_handler(signal.SIGUSR2, signal_resume)
     state.config_path = args.config
     state.options = load_config(state.config_path)
     state.queue = asyncio.PriorityQueue(maxsize=state.options["tess"]["qsize"])
@@ -173,9 +175,9 @@ async def cli_main(args: Namespace) -> None:
                 log = logging.getLogger(info.name)
                 log_level = logger.level(log_level)
                 log.setLevel(log_level)
-                tp = await transport.factory(endpoint=endpoint, logger=log)
+                comm = await transport.factory(endpoint=endpoint, logger=log)
                 phot = Photometer(
-                    transport=tp, period=period, info=info, mqtt_queue=state.queue, logger=log
+                    comm=comm, period=period, info=info, mqtt_queue=state.queue, logger=log
                 )
                 tg.create_task(phot.reader())
                 tg.create_task(phot.sampler())
