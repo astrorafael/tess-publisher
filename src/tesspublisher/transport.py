@@ -80,7 +80,7 @@ class TCPProtocol(asyncio.Protocol):
 
     # asyncio.Protocol callbacks
     def connection_made(self, transport: asyncio.Transport) -> None:
-        self.log.info("Opened TCP connection to (%s, %s)", self.host, self.port)
+        self.log.debug("Opened TCP connection to (%s, %s)", self.host, self.port)
         self.transport = transport
 
     def data_received(self, data: bytes) -> None:

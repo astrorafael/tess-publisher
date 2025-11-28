@@ -65,10 +65,11 @@ class Photometer:
     async def register(self) -> None:
         message = self.info.to_dict()
         self.log.info(message)
-        # await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, message))
+        message = json.dumps(message)
+        await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, message))
         self.log.info("Waiting before sending register message again")
         await asyncio.sleep(5)
-        # await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, message))
+        await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, message))
 
     async def __aenter__(self) -> "Photometer":
         """
@@ -106,7 +107,6 @@ class Photometer:
                         if isinstance(message, dict):
                             tstamp = datetime.now(timezone.utc) + timedelta(seconds=0.5)
                             message["tstamp"] = tstamp.strftime("%Y-%m-%dT%H:%M:%SZ")
-                            self.log.info(message)
                             self.queue.append(message)  # Internal deque
 
     async def sampler(self) -> None:

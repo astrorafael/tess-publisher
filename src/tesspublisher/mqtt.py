@@ -145,9 +145,11 @@ async def publisher(options: dict[str, Any], queue: asyncio.PriorityQueue) -> No
             async with client:
                 priority, payload = await queue.get()
                 if priority == MessagePriority.MQTT_REGISTER:
-                    await client.publish(state.topic_register, payload=json.dumps(payload))
+                    await client.publish(state.topic_register, payload=payload)
                 else:
-                    await client.publish(f"STARS4ALL/{payload["name"]}/reading", payload=json.dumps(payload))
+                    await client.publish(
+                        f"STARS4ALL/{payload['name']}/reading", payload=json.dumps(payload)
+                    )
         except aiomqtt.MqttError:
             log.warning(f"Connection lost; Reconnecting in {interval} seconds ...")
             await asyncio.sleep(interval)
