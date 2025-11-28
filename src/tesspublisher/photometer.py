@@ -18,16 +18,18 @@ import serial
 from . import logger
 from .constants import MessagePriority, Model as PhotometerModel
 from .model import PhotometerInfo
+from .transport import TransportBuilder
 
 # ----------------
 # Global variables
 # ----------------
 
 
+
 class Photometer:
     def __init__(
         self,
-        port: str,
+        endpoint: str,
         period: int,
         info: PhotometerInfo,
         mqtt_queue: PriorityQueue,
@@ -39,10 +41,10 @@ class Photometer:
         self.info = info
         self.mqtt_queue = mqtt_queue
         self.queue = collections.deque(maxlen=1)  # ring buffer 1 slot long
-        self.port = port
         self.period = period
-        self.serial = None
         self.counter = 0
+        self.endpoint = endpoint
+        self.transport = TransportBuilder(name=info.name,endpoint=endpoint,log_level=log_level)
 
     async def register(self) -> None:
         message = self.info.to_dict()
@@ -50,19 +52,17 @@ class Photometer:
         await asyncio.sleep(5)
         await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, message))
 
-    def open(self) -> None:
+    async def open(self) -> None:
         try:
-            self.serial = aioserial.AioSerial(port=self.port, baudrate=9600)
-        except serial.serialutil.SerialException as e:
+            await self.transport.open()
+        except Exception as e:
             self.log.error(e)
             raise
         else:
-            self.log.info("using port %s", self.port)
+            self.log.info("using endpoint %s", self.endpoint)
 
     async def read(self) -> dict[str, Any] | None:
-        message = (await self.serial.readline_async()).decode("utf-8")
-        now = datetime.now(timezone.utc)
-        self.log.debug(message)
+        message, tstamp = await self.transport.read()
         result = None
         try:
             message = json.loads(message)
@@ -70,7 +70,7 @@ class Photometer:
             pass
         else:
             if isinstance(message, dict):
-                message["tstamp"] = (now + timedelta(seconds=0.5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+                message["tstamp"] = (tstamp + timedelta(seconds=0.5)).strftime("%Y-%m-%dT%H:%M:%SZ")
                 result = message
         return result
     
