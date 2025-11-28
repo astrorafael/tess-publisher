@@ -143,7 +143,7 @@ async def publisher(options: dict[str, Any], queue: asyncio.PriorityQueue) -> No
     while True:
         try:
             async with client:
-                priority, payload = await queue.get()
+                priority, tstamp, payload = await queue.get()
                 if priority == MessagePriority.MQTT_REGISTER:
                     await client.publish(state.topic_register, payload=payload)
                 else:

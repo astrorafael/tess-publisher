@@ -65,11 +65,12 @@ class Photometer:
     async def register(self) -> None:
         message = self.info.to_dict()
         self.log.info(message)
-        message = json.dumps(message)
-        await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, message))
+        tstamp = datetime.now(timezone.utc)
+        await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, tstamp, message))
         self.log.info("Waiting before sending register message again")
         await asyncio.sleep(5)
-        await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, message))
+        tstamp = datetime.now(timezone.utc)
+        await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, tstamp, message))
 
     async def __aenter__(self) -> "Photometer":
         """
@@ -119,7 +120,8 @@ class Photometer:
                     message["seq"] = self.counter
                     self.counter += 1
                     self.log.info(message)
-                    await self.mqtt_queue.put((MessagePriority.MQTT_READINGS, message))
+                    tstamp = datetime.now(timezone.utc)
+                    await self.mqtt_queue.put((MessagePriority.MQTT_READINGS, tstamp, message))
                 else:
                     self.log.warn("missing data. Check serial port")
             except Exception as e:
