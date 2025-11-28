@@ -50,16 +50,6 @@ class Photometer:
         await asyncio.sleep(5)
         await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, message))
 
-    def transform(self, message: str, tstamp: datetime) -> dict[str, Any] | None:
-        result = None
-        if isinstance(message, dict):
-            if self.info.model == PhotometerModel.TESS4C:
-                raise NotImplementedError("Not implemented for TESS4C")
-            else:
-                message["tstamp"] = (tstamp + timedelta(seconds=0.5)).strftime("%Y-%m-%dT%H:%M:%SZ")
-            result = message
-        return result
-
     def open(self) -> None:
         try:
             self.serial = aioserial.AioSerial(port=self.port, baudrate=9600)
@@ -73,12 +63,17 @@ class Photometer:
         message = (await self.serial.readline_async()).decode("utf-8")
         now = datetime.now(timezone.utc)
         self.log.debug(message)
+        result = None
         try:
             message = json.loads(message)
         except json.decoder.JSONDecodeError:
-            return None
+            pass
         else:
-            return self.transform(message, now)
+            if isinstance(message, dict):
+                message["tstamp"] = (now + timedelta(seconds=0.5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+                result = message
+        return result
+    
 
     async def reader(self) -> None:
         """Photometer reader task"""

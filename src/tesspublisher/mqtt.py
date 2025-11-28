@@ -12,9 +12,8 @@ import json
 import asyncio
 import logging
 
-from datetime import datetime
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union
+from typing import Any
 
 # ---------------------------
 # Third-party library imports
@@ -22,7 +21,6 @@ from typing import Any, Optional, Union
 
 
 import decouple
-from pydantic import ValidationError
 import aiomqtt
 from aiomqtt.client import ProtocolVersion
 from pubsub import pub
@@ -149,8 +147,7 @@ async def publisher(options: dict[str, Any], queue: asyncio.PriorityQueue) -> No
                 if priority == MessagePriority.MQTT_REGISTER:
                     await client.publish(state.topic_register, payload=json.dumps(payload))
                 else:
-                    name = payload["name"]
-                    await client.publish(f"STARS4ALL/{name}/reading", payload=json.dumps(payload))
+                    await client.publish(f"STARS4ALL/{payload["name"]}/reading", payload=json.dumps(payload))
         except aiomqtt.MqttError:
             log.warning(f"Connection lost; Reconnecting in {interval} seconds ...")
             await asyncio.sleep(interval)
