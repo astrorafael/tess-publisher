@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------
-# Copyright (c) 2014 Rafael Gonzalez.
+# Copyright (c) 2025 Rafael Gonzalez.
 #
 # See the LICENSE file for details
 # ----------------------------------------------------------------------
@@ -52,23 +52,22 @@ qsize = 1000
 # Photometers config data
 # Non reloadable data
 [tess.stars111]
-port = "/dev/ttyACM0"
+endpoint = "serial:/dev/ttyACM0:9600"
 period = 60 # MQTT TX period in seconds. Recommended value: 60
 log_level = "info"
 model = "TESS-W"
 mac_address = "AA:BB:CC:DD:EE:FF"
 zp1 = 20.5
 offset1 = 0 # Frequency offset (dark current frequency)
-filter1 = "UV/IR-740"
+filter1 = "UVIR750"
 
 
 [tess.stars478]
-port = "/dev/ttyACM1"
+endpoint = "tcp:192.168.4.1:23"
 period = 60 # MQTT TX period in seconds. Recommended value: 60
 log_level = "debug"
 model = "TESS4C"
 mac_address = "FF:AA:BB:CC:DD:EE"
-firmware = "Mar  4 2024"
 zp1 = 20.5
 offset1 = 0 # Frequency offset (dark current frequency)
 filter1 = "UVIR750"
@@ -81,3 +80,4 @@ filter3 = "RGB-R"
 zp4 = 20.5
 offset4 = 0 # Frequency offset (dark current frequency)
 filter4 = "RGB-B"
+firmware = "Mar  4 2024"

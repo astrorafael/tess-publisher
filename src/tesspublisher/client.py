@@ -13,6 +13,7 @@ import logging
 import tomllib
 import signal
 
+from logging import Logger
 from dataclasses import dataclass
 from typing import Any, Mapping, Tuple
 from argparse import ArgumentParser, Namespace
@@ -74,10 +75,6 @@ def signal_resume():
 def signal_reload():
     pub.sendMessage(Topic.CLIENT_RELOAD)
 
-
-signal.signal(signal.SIGHUP, signal_reload)
-signal.signal(signal.SIGUSR1, signal_pause)
-signal.signal(signal.SIGUSR2, signal_resume)
 
 # ------------------
 # Auxiliar functions
@@ -151,6 +148,13 @@ def get_photometers_info(config_options: Mapping) -> list[Tuple[str, PhotometerI
     ]
 
 
+def phot_logger(name: str, level: str) -> Logger:
+    log = logging.getLogger(name)
+    log_level = logger.level(level)
+    log.setLevel(log_level)
+    return log
+
+
 # ================
 # MAIN ENTRY POINT
 # ================
@@ -172,12 +176,10 @@ async def cli_main(args: Namespace) -> None:
             tg.create_task(http.admin(state.options["http"]))
             tg.create_task(mqtt.publisher(state.options["mqtt"], state.queue))
             for endpoint, period, log_level, info in photometers:
-                log = logging.getLogger(info.name)
-                log_level = logger.level(log_level)
-                log.setLevel(log_level)
-                comm = await transport.factory(endpoint=endpoint, logger=log)
+                logger = phot_logger(info.name, log_level)
+                comm = await transport.factory(endpoint=endpoint, logger=logger)
                 phot = Photometer(
-                    comm=comm, period=period, info=info, mqtt_queue=state.queue, logger=log
+                    comm=comm, period=period, info=info, mqtt_queue=state.queue, logger=logger
                 )
                 tg.create_task(phot.reader())
                 tg.create_task(phot.sampler())
