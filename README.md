@@ -2,7 +2,10 @@
 
 Software to publish TESS-W / TESS-W-4C readings when no WiFi connection is available.
 
-This software is a gateway program to publish TESS photometer readings to the STARS4ALL MQTT photometer network when no WiFi connection is available for instance in required radielectric silent environments. ![description](images/yebes.jpg), or when the WiFi router is not connected to the Internet,
+This software is a gateway program to publish TESS photometer readings to the STARS4ALL MQTT photometer network when no WiFi connection is available for instance in required radielectric silent environments. ![description](images/yebes.jpg), 
+(Yebes Observatoty, OAN, Spain)
+
+or when the WiFi router is not connected to the Internet,
 
 There are two methods to get readings from a TESS photometer:
 * Via a USB-serial port
