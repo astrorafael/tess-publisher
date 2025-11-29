@@ -45,6 +45,8 @@ class PhotometerReadings:
 
 
 class Photometer:
+    token: int = 0  # To break ties in priority queue
+
     def __init__(
         self,
         comm: Union[SerialTransport, TCPProtocol],
@@ -62,22 +64,10 @@ class Photometer:
         self.counter = 0
         self.readings = PhotometerReadings(comm)
 
-    async def register(self) -> None:
-        message = self.info.to_dict()
-        self.log.info(message)
-        tstamp = datetime.now(timezone.utc)
-        await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, tstamp, message))
-        self.log.info("Waiting before sending register message again")
-        await asyncio.sleep(5)
-        tstamp = datetime.now(timezone.utc)
-        await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, tstamp, message))
-
     async def __aenter__(self) -> "Photometer":
         """
-        Método para entrar en el contexto async.
-        Retorna una instancia de la clase.
+        Context manager that opens/closes the underlying communication interface.
         """
-        # Lógica para entrar en el contexto asíncrono
         await self.comm.open()
         return self
 
@@ -85,14 +75,23 @@ class Photometer:
         self, exc_type: Optional[type], exc_val: Optional[BaseException], exc_tb: Optional[Any]
     ) -> Optional[bool]:
         """
-        Método para salir del contexto async.
-        Parámetros de excepción opcionales.
-        Retorna opcionalmente un booleano para suprimir excepciones.
+        Context manager that opens/closes the underlying communication interface.
         """
-        # Lógica para salir del contexto asíncrono
         if exc_type is not None:
             await self.comm.close()
         return False
+
+    async def enqueue(self, priority: MessagePriority, message):
+        await self.mqtt_queue.put((MessagePriority.MQTT_REGISTER, Photometer.token, message))
+        Photometer.token += 1
+
+    async def register(self) -> None:
+        message = self.info.to_dict()
+        self.log.info(message)
+        await self.enqueue(MessagePriority.MQTT_REGISTER, message)
+        self.log.info("Waiting before sending register message again")
+        await asyncio.sleep(5)
+        await self.enqueue(MessagePriority.MQTT_REGISTER, message)
 
     async def reader(self) -> None:
         """Photometer reader task"""
@@ -120,8 +119,7 @@ class Photometer:
                     message["seq"] = self.counter
                     self.counter += 1
                     self.log.info(message)
-                    tstamp = datetime.now(timezone.utc)
-                    await self.mqtt_queue.put((MessagePriority.MQTT_READINGS, tstamp, message))
+                    await self.enqueue(MessagePriority.MQTT_READINGS, message)
                 else:
                     self.log.warn("missing data. Check serial port")
             except Exception as e:
