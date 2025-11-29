@@ -61,9 +61,13 @@ class TCPProtocol(asyncio.Protocol):
 
     async def open(self) -> None:
         self.log.info("Opening TCP connection to (%s, %s)", self.host, self.port)
-        transport, self.protocol = await self.loop.create_connection(
-            lambda: self, self.host, self.port
-        )
+        try:
+            transport, self.protocol = await self.loop.create_connection(
+                lambda: self, self.host, self.port
+            )
+        except Exception as e:
+            self.log.error(e)
+            raise
 
     async def close(self) -> None:
         self.transport.close()

@@ -121,7 +121,7 @@ class Photometer:
                     self.log.info(message)
                     await self.enqueue(MessagePriority.MQTT_READINGS, message)
                 else:
-                    self.log.warn("missing data. Check serial port")
+                    self.log.warn("missing data. Check %s connection", self.comm.__class__.__name__)
             except Exception as e:
                 self.log.exception(e)
                 break
