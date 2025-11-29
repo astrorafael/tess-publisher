@@ -3,7 +3,7 @@
 Software to publish TESS-W / TESS-W-4C readings when no WiFi connection is available.
 
 This software is a gateway program to publish TESS photometer readings to the STARS4ALL MQTT photometer network when no WiFi connection is available for instance in required radielectric silent environments. ![description](images/yebes.jpg), 
-(Yebes Observatoty, OAN, Spain)
+(Yebes Observatory, OAN, Spain)
 
 or when the WiFi router is not connected to the Internet,
 
@@ -26,7 +26,7 @@ This utility is published in PyPI, so it can be installed with your favourite Py
 
 ```bash
 ~$ pwd
-/home/rafa
+/home/pi
  ~$ mkdir tess
  ~$ cd tess
  tess$ uv venv --python 3.12
@@ -47,21 +47,21 @@ Activate with: source .venv/bin/activate
 
 ### Configure groups
 
-If using the serial port method, it is necessary to add the user `rafa` to the `dialout` group in order to have permissions to open the serial port.
+If using the serial port method, it is necessary to add the user `pi` to the `dialout` group in order to have permissions to open the serial port.
 
 ```bash
- tess$ sudo usermod -a -G dialout rafa
+ tess$ sudo usermod -a -G dialout pi
 ```
 It is necessary to open a new login session to take effect. Verify it with the following command:
 
 
 ```bash
- tess$ groups rafa
+ tess$ groups pi
 ```
 
 ### Create an `.env` environment file
 
-Some configuration values are read at runtime via enviroment variables (mostly credentials). In your `/home/rafa/tess` directory, create a `.env` file with the following contents:
+Some configuration values are read at runtime via enviroment variables (mostly credentials). In your `/home/pi/tess` directory, create a `.env` file with the following contents:
 
 ```bash
 PATH=/home/pi/repos/tessdb-server/.venv/bin:/usr/local/bin:/usr/bin:/bin
@@ -91,7 +91,7 @@ The reast of configuration values are stored in a `config.toml` file
 
 ```toml
 # ----------------------------------------------------------------------
-# Copyright (c) 2025 Rafael Gonzalez.
+# Copyright (c) 2025 piel Gonzalez.
 #
 # See the LICENSE file for details
 # ----------------------------------------------------------------------
