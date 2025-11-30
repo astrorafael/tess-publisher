@@ -40,7 +40,6 @@ from .constants import Topic
 from .logger import LogSpace
 from .model import PhotometerInfo
 from .photometer import Photometer
-from . import transport, logger
 
 
 # The Server state
@@ -119,40 +118,31 @@ async def reload_monitor() -> None:
 
 def get_photometers_info(config_options: Mapping) -> list[Tuple[str, PhotometerInfo]]:
     return [
-        (
-            info["endpoint"],
-            info["period"],
-            info["log_level"],
-            # PhotometerInfo validates input data from config.toml
-            PhotometerInfo(
-                name=name,
-                mac_address=info["mac_address"],
-                model=info["model"],
-                firmware=info.get("firmware"),
-                zp1=info["zp1"],
-                filter1=info["filter1"],
-                offset1=info["offset1"],
-                zp2=info.get("zp2"),
-                filter2=info.get("filter2"),
-                offset2=info.get("offset2"),
-                zp3=info.get("zp3"),
-                filter3=info.get("filter3"),
-                offset3=info.get("offset3"),
-                zp4=info.get("zp4"),
-                filter4=info.get("filter4"),
-                offset4=info.get("offset4"),
-            ),
+        # PhotometerInfo validates input data from config.toml
+        PhotometerInfo(
+            endpoint=info["endpoint"],
+            log_level=info["log_level"],
+            period=info["period"],
+            name=name,
+            mac_address=info["mac_address"],
+            model=info["model"],
+            firmware=info.get("firmware"),
+            zp1=info["zp1"],
+            filter1=info["filter1"],
+            offset1=info["offset1"],
+            zp2=info.get("zp2"),
+            filter2=info.get("filter2"),
+            offset2=info.get("offset2"),
+            zp3=info.get("zp3"),
+            filter3=info.get("filter3"),
+            offset3=info.get("offset3"),
+            zp4=info.get("zp4"),
+            filter4=info.get("filter4"),
+            offset4=info.get("offset4"),
         )
         for name, info in state.options["tess"].items()
         if name.lower().startswith("stars")
     ]
-
-
-def phot_logger(name: str, level: str) -> Logger:
-    log = logging.getLogger(name)
-    log_level = logger.level(level)
-    log.setLevel(log_level)
-    return log
 
 
 # ================
@@ -169,20 +159,15 @@ async def cli_main(args: Namespace) -> None:
     state.config_path = args.config
     state.options = load_config(state.config_path)
     state.queue = asyncio.PriorityQueue(maxsize=state.options["tess"]["qsize"])
-    photometers = get_photometers_info(state.options["tess"].items())
+    phot_infos = get_photometers_info(state.options["tess"].items())
+    photometers = [Photometer(info=info, mqtt_queue=state.queue) for info in phot_infos]
     try:
         async with asyncio.TaskGroup() as tg:
             tg.create_task(reload_monitor())
             tg.create_task(http.admin(state.options["http"]))
             tg.create_task(mqtt.publisher(state.options["mqtt"], state.queue))
-            for endpoint, period, log_level, info in photometers:
-                logger = phot_logger(info.name, log_level)
-                comm = await transport.factory(endpoint=endpoint, logger=logger)
-                phot = Photometer(
-                    comm=comm, period=period, info=info, mqtt_queue=state.queue, logger=logger
-                )
-                tg.create_task(phot.reader())
-                tg.create_task(phot.sampler())
+            for phot in photometers:
+                tg.create_task(phot.task())
     except* asyncio.TimeoutError:
         log.critical("No readings from any photometer")
     except* KeyError as e:

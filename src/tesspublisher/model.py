@@ -94,11 +94,31 @@ def is_zero_point(value: Union[str, int, float]) -> float:
         if not (ZP_LOW <= value <= ZP_HIGH):
             raise ValueError(f"Zero Point {value} out of bounds [{ZP_LOW}-{ZP_HIGH}]")
         return value
-    return ValueError(f"{value} has an unsupported type: {type(value)}")
+    raise ValueError(f"{value} has an unsupported type: {type(value)}")
+
+
+def is_endpoint(value: str) -> str:
+    return value
+
+
+def is_log_level(value: str) -> str:
+    levels = ("critical", "warn", "info", "debug", "none")
+    if value not in levels:
+        raise ValueError(f"log level not in {levels}")
+    return value
+
+
+def is_tx_period(value: int) -> int:
+    if not (0 < value <= 86400):
+        raise ValueError("Tx period not in range 0 < Tx <= 86400")
+    return value
 
 
 # --------------------
 
+TxPeriodType = Annotated[int, AfterValidator(is_tx_period)]
+LogLevelType = Annotated[str, AfterValidator(is_log_level)]
+EndpointType = Annotated[str, AfterValidator(is_endpoint)]
 Stars4AllName = Annotated[str, AfterValidator(is_stars4all_name)]
 MacAddress = Annotated[str, AfterValidator(is_mac_address)]
 FreqOffset = Annotated[float, AfterValidator(is_valid_offset)]
@@ -107,6 +127,9 @@ TimestampType = Annotated[Union[str, datetime, None], BeforeValidator(is_datetim
 
 
 class PhotometerInfo(BaseModel):
+    endpoint: EndpointType
+    log_level: LogLevelType
+    period: TxPeriodType
     name: Stars4AllName
     mac_address: MacAddress
     model: PhotometerModel

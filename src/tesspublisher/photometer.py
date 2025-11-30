@@ -5,14 +5,16 @@
 # ----------------------------------------------------------------------
 
 import json
-from logging import Logger
+import logging
 import asyncio
 import collections
+
+from logging import Logger
 from asyncio import PriorityQueue
 from datetime import datetime, timezone, timedelta
 from typing import AsyncIterator, Optional, Any, Union
 
-
+from . import transport, logger
 from .constants import MessagePriority
 from .model import PhotometerInfo
 from .transport import SerialTransport, TCPProtocol
@@ -49,20 +51,18 @@ class Photometer:
 
     def __init__(
         self,
-        comm: Union[SerialTransport, TCPProtocol],
-        period: int,
         info: PhotometerInfo,
         mqtt_queue: PriorityQueue,
-        logger: Logger,
     ):
-        self.comm = comm
-        self.log = logger
         self.info = info
+        self.period = info.period
+        self.log = logging.getLogger(info.name)
+        self.log.setLevel(logger.level(info.log_level))
+        self.comm = transport.factory(endpoint=info.endpoint, logger=self.log)
         self.mqtt_queue = mqtt_queue
         self.queue = collections.deque(maxlen=1)  # ring buffer 1 slot long
-        self.period = period
         self.counter = 0
-        self.readings = PhotometerReadings(comm)
+        self.readings = PhotometerReadings(self.comm)
 
     async def __aenter__(self) -> "Photometer":
         """
@@ -94,7 +94,7 @@ class Photometer:
         await self.enqueue(MessagePriority.MQTT_REGISTER, message)
 
     async def reader(self) -> None:
-        """Photometer reader task"""
+        """Photometer reader sub-task"""
         await self.register()
         async with self:  # Open the device
             async for message in self.readings:
@@ -110,7 +110,7 @@ class Photometer:
                             self.queue.append(message)  # Internal deque
 
     async def sampler(self) -> None:
-        """Photometer sampler task"""
+        """Photometer sampler sub-task"""
         while True:
             try:
                 await asyncio.sleep(self.period)
@@ -125,3 +125,9 @@ class Photometer:
             except Exception as e:
                 self.log.exception(e)
                 break
+
+    async def task(self) -> None:
+        """Photometer master task"""
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(self.reader())
+            tg.create_task(self.sampler())

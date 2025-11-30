@@ -131,7 +131,7 @@ def chop(endpoint: str, sep=":"):
     return chopped
 
 
-async def factory(endpoint: str, logger: Logger) -> Union[TCPProtocol, SerialTransport]:
+def factory(endpoint: str, logger: Logger) -> Union[TCPProtocol, SerialTransport]:
     proto, A, B = chop(endpoint)
     if proto == "serial":
         comm = SerialTransport(logger=logger, port=A, baudrate=B)
