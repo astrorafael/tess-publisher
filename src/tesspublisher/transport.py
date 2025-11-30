@@ -97,7 +97,7 @@ class TCPProtocol(asyncio.Protocol):
                 break  # no full line yet
             # Extract one line including newline
             line = self._buffer[: idx + len(self.newline)]
-            self._buffer = bytearray()  # Empties buffer
+            del self._buffer[: idx + len(self.newline)]  # delete extracted line from buffer
             message = line.decode(self.encoding, errors="replace")
             if (
                 self.on_data_received is not None
