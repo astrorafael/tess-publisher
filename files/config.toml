@@ -24,10 +24,15 @@ log_level = "info"
 # MQTT_BROKER, MQTT_USERNAME, MQTT_PASSWORD, MQTT_CLIENT_ID
 # respectively
 
-# Keepalive connection (in seconds)
+# MQTT keepalive connection (in seconds)
 # Not reloadable property
 keepalive = 60
 
+# inactivity timeout (in seconds)
+# Program dies after this timeouthas expired and
+# no reading has been publihed to the MQTT broker
+# Not reloadable property
+timeout = 1800
 
 # namespace log level (debug, info, warn, error, critical)
 # Reloadable property

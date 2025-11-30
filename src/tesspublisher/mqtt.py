@@ -77,11 +77,13 @@ class State:
     topics: list[str] = field(default_factory=list)
     log_level: int = 0
     protocol_log_level: int = 0
+    timeout: int = 1800
 
     def update(self, options: dict[str, Any]) -> None:
         """Updates the mutable state"""
 
         self.keepalive = options["keepalive"]
+        self.timeout = options["timeout"]
         self.log_level = logger.level(options["log_level"])
         log.setLevel(self.log_level)
         self.protocol_log_level = logger.level(options["protocol_log_level"])
@@ -140,23 +142,16 @@ async def publisher(options: dict[str, Any], queue: asyncio.PriorityQueue) -> No
         keepalive=state.keepalive,
         protocol=ProtocolVersion.V311,
     )
-    seconds = 180
     while True:
         try:
             async with client:
                 get_future = queue.get()
-                priority, _, message = await asyncio.wait_for(get_future, seconds)
+                priority, _, message = await asyncio.wait_for(get_future, state.timeout)
                 payload = json.dumps(message)
                 if priority == MessagePriority.MQTT_REGISTER:
                     await client.publish(state.topic_register, payload=payload)
                 else:
                     await client.publish(f"STARS4ALL/{message['name']}/reading", payload=payload)
-        except asyncio.TimeoutError:
-            log.critical("No Activity in %d. Task dies", seconds)
-            raise
         except aiomqtt.MqttError:
             log.warning(f"Connection lost; Reconnecting in {interval} seconds ...")
             await asyncio.sleep(interval)
-        except Exception as e:
-            log.critical("Unexpected & unhandled exception, see details below")
-            log.exception(e)

@@ -183,10 +183,10 @@ async def cli_main(args: Namespace) -> None:
                 )
                 tg.create_task(phot.reader())
                 tg.create_task(phot.sampler())
+    except* asyncio.TimeoutError:
+        log.critical("No readings from any photometer")
     except* KeyError as e:
         log.exception("%s -> %s", e, e.__class__.__name__)
-    except* asyncio.CancelledError:
-        pass
 
 
 def add_args(parser: ArgumentParser) -> None:
