@@ -44,27 +44,6 @@ from .constants import Topic, MessagePriority
 
 
 @dataclass(slots=True)
-class Stats:
-    num_published: int = 0
-    num_readings: int = 0
-    num_register: int = 0
-    num_filtered: int = 0
-
-    def reset(self) -> None:
-        """Resets stat counters"""
-        self.num_published = 0
-        self.num_readings = 0
-        self.num_register = 0
-        self.num_filtered = 0
-
-    def show(self) -> None:
-        log.info(
-            "MQTT Stats [Total, Reads, Register, Discarded] = %s",
-            [stats.num_published, stats.num_readings, stats.num_register, stats.num_filtered],
-        )
-
-
-@dataclass(slots=True)
 class State:
     transport: str = decouple.config("MQTT_TRANSPORT")
     host: str = decouple.config("MQTT_HOST")
@@ -96,30 +75,11 @@ class State:
 
 log = logging.getLogger(logger.LogSpace.MQTT.value)
 proto_log = logging.getLogger("MQTT")
-stats = Stats()
 state = State()
 
 # -----------------
 # Auxiliar functions
 # ------------------
-
-
-def on_server_stats() -> None:
-    global state
-    stats.show()
-    stats.reset()
-
-
-pub.subscribe(on_server_stats, Topic.CLIENT_STATS)
-
-
-def on_server_reload(options: dict[str, Any]) -> None:
-    global state
-    state.update(options)
-
-
-# Do not subscribe. server.on_server_reload() will call us
-# pub.subscribe(on_server_reload, Topic.CLIENT_RELOAD)
 
 
 # --------------

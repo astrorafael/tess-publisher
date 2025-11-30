@@ -38,7 +38,6 @@ def level_name(level: int) -> str:
 # Log NameSpaces
 class LogSpace(StrEnum):
     MQTT = "mqtt"
-    SERIAL = "serial"
     HTTP = "http"
     CLIENT = "client"
 

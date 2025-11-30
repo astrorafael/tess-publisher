@@ -58,62 +58,15 @@ class State:
 log = logging.getLogger(LogSpace.CLIENT.value)
 state = State()
 
-# ------------------------------------
-# Signal handling for the whole server
-# ------------------------------------
-
-
-def signal_pause():
-    pub.sendMessage(Topic.CLIENT_PAUSE)
-
-
-def signal_resume():
-    pub.sendMessage(Topic.CLIENT_RESUME)
-
-
-def signal_reload():
-    pub.sendMessage(Topic.CLIENT_RELOAD)
-
 
 # ------------------
 # Auxiliar functions
 # ------------------
 
 
-# Either coming from HTTP API or the Signal interface
-def on_client_reload() -> None:
-    state.reloaded = True
-
-
-pub.subscribe(on_client_reload, Topic.CLIENT_RELOAD)
-
-
-# -----------------------
-# The reload monitor task
-# -----------------------
-
-
 def load_config(path: str) -> dict[str, Any]:
     with open(path, "rb") as config_file:
         return tomllib.load(config_file)
-
-
-async def reload_file(path: str) -> dict[str, Any]:
-    global state
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(None, load_config, path)
-
-
-async def reload_monitor() -> None:
-    """Config file reload monitoring task"""
-    while True:
-        if state.reloaded:
-            state.reloaded = False
-            log.warning("reloading server configuration")
-            options = await reload_file(state.config_path)
-            mqtt.on_client_reload(options["mqtt"])
-            http.on_client_reload(options["http"])
-        await asyncio.sleep(1)
 
 
 def get_photometers_info(config_options: Mapping) -> list[Tuple[str, PhotometerInfo]]:
@@ -152,10 +105,6 @@ def get_photometers_info(config_options: Mapping) -> list[Tuple[str, PhotometerI
 
 async def cli_main(args: Namespace) -> None:
     global state
-    loop = asyncio.get_running_loop()
-    loop.add_signal_handler(signal.SIGHUP, signal_reload)
-    loop.add_signal_handler(signal.SIGUSR1, signal_pause)
-    loop.add_signal_handler(signal.SIGUSR2, signal_resume)
     state.config_path = args.config
     state.options = load_config(state.config_path)
     state.queue = asyncio.PriorityQueue(maxsize=state.options["tess"]["qsize"])
@@ -163,13 +112,12 @@ async def cli_main(args: Namespace) -> None:
     photometers = [Photometer(info=info, mqtt_queue=state.queue) for info in phot_infos]
     try:
         async with asyncio.TaskGroup() as tg:
-            tg.create_task(reload_monitor())
             tg.create_task(http.admin(state.options["http"]))
             tg.create_task(mqtt.publisher(state.options["mqtt"], state.queue))
             for phot in photometers:
                 tg.create_task(phot.task())
     except* asyncio.TimeoutError:
-        log.critical("No readings from any photometer")
+        log.critical("No readings from any photometer. Program dies")
     except* KeyError as e:
         log.exception("%s -> %s", e, e.__class__.__name__)
 

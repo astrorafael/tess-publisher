@@ -11,7 +11,7 @@
 
 # Connection is made by env variables ADMIN_HTTP_LISTEN_ADDR, ADMIN_HTTP_PORT
 
-# http task log level (debug, info, warn, error, critical)
+# http task log level (debug, info, warn, error, critical, none)
 log_level = "info"
 
 #------------------------------------------------------------------------#
@@ -25,22 +25,18 @@ log_level = "info"
 # respectively
 
 # MQTT keepalive connection (in seconds)
-# Not reloadable property
 keepalive = 60
 
 # inactivity timeout (in seconds)
-# Program dies after this timeouthas expired and
-# no reading has been publihed to the MQTT broker
-# Not reloadable property
+# Program dies after this timeout has expired 
+# after the last reading was published to the MQTT broker
 timeout = 1800
 
-# namespace log level (debug, info, warn, error, critical)
-# Reloadable property
+# namespace log level (debug, info, warn, error, critical, none)
 log_level = "info"
 
 # MQTT PDUs log level. 
 # See all PDU exchanges with 'debug' level. Otherwise, leave it to 'info'
-# Reloadable property
 protocol_log_level = "info"
 
 #------------------------------------------------------------------------#
@@ -48,14 +44,12 @@ protocol_log_level = "info"
 [tess]
 
 # namespace log level (debug, info, warn, error, critical)
-# Reloadable property
 log_level = "info"
 
 # Serial to MQTT queue size
 qsize = 1000
 
 # Photometers config data
-# Non reloadable data
 [tess.stars111]
 endpoint = "serial:/dev/ttyACM0:9600"
 period = 60 # MQTT TX period in seconds. Recommended value: 60
@@ -68,7 +62,7 @@ filter1 = "UVIR750"
 
 
 [tess.stars478]
-endpoint = "tcp:192.168.4.1:23"
+endpoint = "tcp:192.168.4.1:23" # IP when photometer becomes an Acess Point
 period = 60 # MQTT TX period in seconds. Recommended value: 60
 log_level = "debug"
 model = "TESS4C"

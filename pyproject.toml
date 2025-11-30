@@ -20,7 +20,6 @@ classifiers = [
 ]
 dependencies = [
   # generic utilities
-  "pypubsub>=4.0",
   "lica>=2.0",
   # Serial ports
   "aioserial >= 1.3",

@@ -39,8 +39,8 @@ class TCPProtocol(asyncio.Protocol):
     def __init__(
         self,
         logger: Logger,
-        host: str = "192.168.4.1",
-        port: int = 23,
+        host: str,
+        port: int,
         loop: asyncio.AbstractEventLoop | None = None,
         encoding: str = "utf-8",
         newline: bytes = b"\r\n",
@@ -109,6 +109,7 @@ class TCPProtocol(asyncio.Protocol):
                 break
 
     def connection_lost(self, exc: Exception | None) -> None:
+        self.log.info("TCP connection lost to (%s, %s) open", self.host, self.port)
         if not self.on_conn_lost.cancelled() and not self.on_conn_lost.done():
             self.on_conn_lost.set_result(True)
 

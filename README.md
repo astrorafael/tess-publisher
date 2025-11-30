@@ -90,20 +90,13 @@ The reast of configuration values are stored in a `config.toml` file
 
 
 ```toml
-# ----------------------------------------------------------------------
-# Copyright (c) 2025 piel Gonzalez.
-#
-# See the LICENSE file for details
-# ----------------------------------------------------------------------
-
-#------------------------------------------------------------------------#
 [http]
 
 # HTTP management interface section
 
 # Connection is made by env variables ADMIN_HTTP_LISTEN_ADDR, ADMIN_HTTP_PORT
 
-# http task log level (debug, info, warn, error, critical)
+# http task log level (debug, info, warn, error, critical, none)
 log_level = "info"
 
 #------------------------------------------------------------------------#
@@ -116,18 +109,19 @@ log_level = "info"
 # MQTT_BROKER, MQTT_USERNAME, MQTT_PASSWORD, MQTT_CLIENT_ID
 # respectively
 
-# Keepalive connection (in seconds)
-# Not reloadable property
+# MQTT keepalive connection (in seconds)
 keepalive = 60
 
+# inactivity timeout (in seconds)
+# Program dies after this timeout has expired 
+# after the last reading was published to the MQTT broker
+timeout = 1800
 
-# namespace log level (debug, info, warn, error, critical)
-# Reloadable property
+# namespace log level (debug, info, warn, error, critical, none)
 log_level = "info"
 
 # MQTT PDUs log level. 
 # See all PDU exchanges with 'debug' level. Otherwise, leave it to 'info'
-# Reloadable property
 protocol_log_level = "info"
 
 #------------------------------------------------------------------------#
@@ -135,14 +129,12 @@ protocol_log_level = "info"
 [tess]
 
 # namespace log level (debug, info, warn, error, critical)
-# Reloadable property
 log_level = "info"
 
 # Serial to MQTT queue size
 qsize = 1000
 
 # Photometers config data
-# Non reloadable data
 [tess.stars111]
 endpoint = "serial:/dev/ttyACM0:9600"
 period = 60 # MQTT TX period in seconds. Recommended value: 60
@@ -155,7 +147,7 @@ filter1 = "UVIR750"
 
 
 [tess.stars478]
-endpoint = "tcp:192.168.4.1:23"
+endpoint = "tcp:192.168.4.1:23" # IP when photometer becomes an Acess Point
 period = 60 # MQTT TX period in seconds. Recommended value: 60
 log_level = "debug"
 model = "TESS4C"
@@ -186,10 +178,6 @@ You need to configure the photometer-specific data. Other values are good as is.
 * `filter1`: string identifying a mounted filter. All TESS-W models use an UV/IR cut of filter that cuts IR at 750nm. Leave it at "UVIR750" anless your photometer was delivered with a custom filter.
 
 In the case of a 4-channel TESS-W, the `zp1`, `filter1` and `offset1` values must also be configured to channels 2, 3 & 4. You must also specify a `firmware` value. All these values can be looked up by connecting the photometer when it is configured as an [Access Point](http://192.168.4.1/config)
-
-
-
-
 
 
 ### Testing
